@@ -4,9 +4,32 @@ import pytest
 from typing import List
 from azure.identity import AzureCliCredential, DefaultAzureCredential, InteractiveBrowserCredential
 
-from azure.ai.generative import AIClient
+from azure.ai.resources.client import AIClient
 
 logger = logging.getLogger(__name__)
+
+from devtools_testutils import test_proxy
+
+# autouse=True will trigger this fixture on each pytest run, even if it's not explicitly used by a test method
+@pytest.fixture(scope="session", autouse=True)
+def start_proxy(test_proxy):
+    return
+
+
+@pytest.fixture(scope="session")
+def ubuntu_rag_environment(local_environments_base):
+    from azure.ai.ml.entities import BuildContext, Environment
+
+    return Environment(
+        name="ubuntu_rag",
+        description="AzureML RAG E2E Test Environment",
+        build=BuildContext(path=local_environments_base / "ubuntu_rag"),
+    )
+
+
+@pytest.fixture(scope="session")
+def local_azureml_rag_base():
+    return Path(__file__).parent.parent.parent
 
 
 def pytest_addoption(parser):

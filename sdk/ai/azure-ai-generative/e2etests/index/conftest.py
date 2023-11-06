@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 from azure.core.exceptions import ResourceNotFoundError
-from azure.ai.generative.entities import Connection
+from azure.ai.resources.entities import BaseConnection
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ def aoai_connection(ai_client, aoai_connection_name):
 
 
 @pytest.fixture(scope="session")
-def document_intelligence_connection(ai_client, document_intelligence_connection_name) -> Connection:
+def document_intelligence_connection(ai_client, document_intelligence_connection_name) -> BaseConnection:
     """Retrieve ACS connection information."""
     try:
         return ai_client.connections.get(document_intelligence_connection_name)
