@@ -98,6 +98,7 @@ def ai_client(azure_credentials, subscription_id, resource_group, project_name, 
     ai_client = AIClient(
         subscription_id=subscription_id,
         resource_group_name=resource_group,
+        ai_resource_name = project_name,
         project_name=project_name,
         credential=azure_credentials
     )
@@ -108,6 +109,46 @@ def ai_client(azure_credentials, subscription_id, resource_group, project_name, 
 @pytest.fixture(scope="session")
 def ml_client(ai_client):
     return ai_client._ml_client
+
+
+@pytest.fixture(scope="session")
+def azureml_workspace_v1(subscription_id, resource_group, project_name, workspace_config_path):
+    from azureml.core import Workspace
+    from azureml.core.authentication import AzureCliAuthentication
+
+    if workspace_config_path is not None and len(workspace_config_path) > 0:
+        logger.info(
+            f"🔃 Loading workspace from config file: {workspace_config_path}.")
+        try:
+            return Workspace.from_config(path=workspace_config_path)
+        except Exception as e:
+            logger.warning(
+                f"Failed to load workspace from config file: {workspace_config_path}: {e}")
+
+    logger.info(f"🔃 Using AzureML workspace: {project_name}")
+    return Workspace(subscription_id, resource_group, workspace_name=project_name, auth=AzureCliAuthentication())
+
+
+@pytest.fixture(scope="session")
+def azureml_workspace_v2(azure_credentials, subscription_id, resource_group, project_name, workspace_config_path):
+    from azure.ai.ml import MLClient
+
+    if workspace_config_path is not None and len(workspace_config_path) > 0:
+        logger.info(
+            f"🔃 Loading workspace from config file: {workspace_config_path}.")
+        try:
+            return MLClient.from_config(credential=azure_credentials, path=workspace_config_path)
+        except Exception as e:
+            logger.warning(
+                f"Failed to load workspace from config file: {workspace_config_path}: {e}")
+
+    logger.info(f"🔃 Using AzureML workspace: {project_name}")
+    return MLClient(
+        credential=azure_credentials,
+        subscription_id=subscription_id,
+        resource_group_name=resource_group,
+        workspace_name=project_name
+    )
 
 
 @pytest.fixture()
