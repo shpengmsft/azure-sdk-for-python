@@ -39,7 +39,7 @@ def pytest_addoption(parser):
                      help="Subscription id of Azure AI Project used for testing.")
     parser.addoption("--resource-group", default="hanchi-test",
                      help="Resource group name of Azure AI Project used for testing.")
-    parser.addoption("--project_name-name", default="hwep",
+    parser.addoption("--project-name", default="hwep",
                      help="Name of Azure AI Project used for testing.")
     parser.addoption("--workspace-config-path", default="./config.json",
                      help="Path to workspace config file.")
