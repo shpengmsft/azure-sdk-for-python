@@ -2,7 +2,7 @@ import io
 import logging
 from contextlib import redirect_stdout
 
-from azure.ai.ml import MLClient, load_data
+from azure.ai.ml import MLClient
 from azure.ai.ml.dsl import pipeline
 from azure.ai.generative.index._dataindex.data_index import index_data
 from azure.ai.generative.index._dataindex.entities import CitationRegex, Data, DataIndex, Embedding, IndexSource, IndexStore
