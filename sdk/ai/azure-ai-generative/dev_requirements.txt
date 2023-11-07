@@ -6,5 +6,7 @@
 -e ../azure-ai-resources
 -e ../azure-ai-generative[cognitive_search,document_parsing,faiss,hugging_face,index,qa_generation,simulator,evaluate]
 azure-cli
+azure-search-documents
+langchain
 pytest
 pytest-xdist
