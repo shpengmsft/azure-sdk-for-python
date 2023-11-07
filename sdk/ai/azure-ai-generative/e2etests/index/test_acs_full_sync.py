@@ -1,11 +1,23 @@
+import io
 import json
 import logging
+from contextlib import redirect_stdout
 
 import pytest
 
 logger = logging.getLogger(__name__)
 
-
+def wait_for_job(ml_client, job, stream_run_output=False):
+    if stream_run_output:
+        ml_client.jobs.stream(job.name)
+    else:
+        logger.info("Redirecting stdout while streaming Job output.")
+        # TODO: Write to file?
+        job_output = io.StringIO()
+        with redirect_stdout(job_output):
+            ml_client.jobs.stream(job.name)
+        logger.info("Job finished streaming.")
+        
 @pytest.fixture(scope="session")
 def uri_full_sync_acs_pipeline(crack_and_chunk_and_embed_component_local, update_acs_index_component, register_mlindex_asset_component):
     from azure.ai.ml import Output
@@ -51,7 +63,6 @@ def uri_full_sync_acs_pipeline(crack_and_chunk_and_embed_component_local, update
 
         update_acs_index = update_acs_index_component(
             embeddings=crack_and_chunk_and_embed.outputs.embeddings,
-            #embeddings=Input(type="uri_folder", path=f"azureml://datastores/workspaceblobstore/paths/embeddings/azure_docs_aoai_acs_rcts/69a579ac-9892-4788-ba2d-6ae4891c343e"),
             acs_config=acs_config,
             connection_id=acs_connection_id,
         )
@@ -72,7 +83,7 @@ def uri_full_sync_acs_pipeline(crack_and_chunk_and_embed_component_local, update
     return uri_full_sync_acs
 
 
-def test_incremental_many_docs_full_sync_acs(local_components_base, azureml_workspace_v2, azureml_workspace_v1, experiment_name,
+def test_incremental_many_docs_full_sync_acs(local_components_base, azureml_workspace_v2, experiment_name,
                                 uri_full_sync_acs_pipeline, test_data_dir,
                                 aoai_connection, acs_connection, acs_temp_index, stream_run_output):
     from azure.ai.ml import Input
@@ -86,25 +97,17 @@ def test_incremental_many_docs_full_sync_acs(local_components_base, azureml_work
     pipeline_job = uri_full_sync_acs_pipeline(
         input_data=Input(type="uri_folder", path=incremental_many_docs),
         input_glob=input_glob,
-        #citation_url=citation_url,
-        #citation_replacement_regex=citation_replacement_regex,
         embeddings_model="azure_open_ai://deployment/text-embedding-ada-002/model/text-embedding-ada-002",
-        #embeddings_model='hugging_face://model/sentence-transformers/all-mpnet-base-v2',
-        aoai_connection_id=aoai_connection["id"],
+        aoai_connection_id=aoai_connection.id,
         embeddings_container=Input(type="uri_folder", path=f"azureml://datastores/workspaceblobstore/paths/embeddings/{asset_name}"),
         acs_config=json.dumps({
-            #'index_name': f'{asset_name.replace("_", "-")}',
             "index_name": acs_temp_index,
             "sync_index": True
-            #'push_embeddings': "False"
         }),
-        acs_connection_id=acs_connection["id"],
+        acs_connection_id=acs_connection.id,
         asset_name=asset_name
     )
     pipeline_job.display_name = asset_name
-
-    #pipeline_job.settings.default_compute = "cpu-e16"
-    #pipeline_job.settings.force_rerun = True # Rerun each time so that git_clone isn't cached, if intent is to ingest latest data.
 
     # These are added so that in progress index generations can be listed in UI, this tagging is done automatically by UI.
     pipeline_job.properties["azureml.mlIndexAssetName"] = asset_name
@@ -118,18 +121,16 @@ def test_incremental_many_docs_full_sync_acs(local_components_base, azureml_work
 
     logger.info(f'Submitted run "{running_pipeline_job}", url: {running_pipeline_job.studio_url}')
 
-    if stream_run_output:
-        azureml_workspace_v2.jobs.stream(running_pipeline_job.name)
-    else:
-        run = azureml_workspace_v1.get_run(running_pipeline_job.name)
-        run.wait_for_completion(show_output=False)
+    # Wait for it to finish
+    wait_for_job(azureml_workspace_v2, running_pipeline_job, stream_run_output)
 
     output = azureml_workspace_v2.jobs._get_named_output_uri(running_pipeline_job.name, "mlindex_asset_uri")
     logger.info(f"mlindex_asset_uri: {output['mlindex_asset_uri']}")
 
     #index_asset = azureml_workspace_v2.data.get(output['mlindex_asset'], label='latest')
 
-    from azureml.rag.mlindex import MLIndex
+    # from azureml.rag.mlindex import MLIndex
+    from azure.ai.generative import MLIndex
 
     retriever = MLIndex(output["mlindex_asset_uri"]).as_langchain_retriever()
     docs = retriever.get_relevant_documents("What is Baby Shark and why does Microsoft care?")
