@@ -31,6 +31,9 @@ def ubuntu_rag_environment(local_environments_base):
 def local_azureml_rag_base():
     return Path(__file__).parent.parent.parent
 
+@pytest.fixture(scope="session")
+def local_ai_generative_base():
+    return Path(__file__).parent.parent
 
 def pytest_addoption(parser):
     from index.conftest import index_pytest_addoption
@@ -109,24 +112,6 @@ def ai_client(azure_credentials, subscription_id, resource_group, project_name, 
 @pytest.fixture(scope="session")
 def ml_client(ai_client):
     return ai_client._ml_client
-
-
-@pytest.fixture(scope="session")
-def azureml_workspace_v1(subscription_id, resource_group, project_name, workspace_config_path):
-    from azureml.core import Workspace
-    from azureml.core.authentication import AzureCliAuthentication
-
-    if workspace_config_path is not None and len(workspace_config_path) > 0:
-        logger.info(
-            f"🔃 Loading workspace from config file: {workspace_config_path}.")
-        try:
-            return Workspace.from_config(path=workspace_config_path)
-        except Exception as e:
-            logger.warning(
-                f"Failed to load workspace from config file: {workspace_config_path}: {e}")
-
-    logger.info(f"🔃 Using AzureML workspace: {project_name}")
-    return Workspace(subscription_id, resource_group, workspace_name=project_name, auth=AzureCliAuthentication())
 
 
 @pytest.fixture(scope="session")
