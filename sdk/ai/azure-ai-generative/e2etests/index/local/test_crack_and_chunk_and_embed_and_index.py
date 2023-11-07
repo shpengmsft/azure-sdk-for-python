@@ -5,8 +5,8 @@ import shutil
 from pathlib import Path
 
 import azure
-from azureml.rag.tasks.crack_and_chunk_and_embed_and_index import crack_and_chunk_and_embed_and_index
-from azureml.rag.utils.logging import ActivityLoggerAdapter
+from azure.ai.generative.index._tasks.crack_and_chunk_and_embed_and_index import crack_and_chunk_and_embed_and_index
+from azure.ai.generative.index._utils.logging import ActivityLoggerAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +27,10 @@ def test_local_docs_to_aoai_mlindex(aoai_connection, acs_connection, test_data_d
         source_glob="**/*",
         chunk_size=200,
         embeddings_model=embeddings_model,
-        embeddings_connection=aoai_connection["id"],
+        embeddings_connection=aoai_connection.id,
         embeddings_cache=embeddings_cache,
         index_type="acs",
-        index_connection=acs_connection["id"],
+        index_connection=acs_connection.id,
         index_config={
             "index_name": acs_temp_index,
             # TODO: Indicates that documents found in supplied embeddings_cache will be considered to be already indexed.
@@ -55,10 +55,10 @@ def test_local_docs_to_aoai_mlindex(aoai_connection, acs_connection, test_data_d
         source_glob="**/*",
         chunk_size=200,
         embeddings_model=embeddings_model,
-        embeddings_connection=aoai_connection["id"],
+        embeddings_connection=aoai_connection.id,
         embeddings_cache=embeddings_cache,
         index_type="acs",
-        index_connection=acs_connection["id"],
+        index_connection=acs_connection.id,
         index_config={
             "index_name": acs_temp_index,
             # TODO: Indicates that documents found in supplied embeddings_cache will be considered to be already indexed.
@@ -83,10 +83,10 @@ def test_local_docs_to_aoai_mlindex(aoai_connection, acs_connection, test_data_d
         source_glob="**/*",
         chunk_size=200,
         embeddings_model=embeddings_model,
-        embeddings_connection=aoai_connection["id"],
+        embeddings_connection=aoai_connection.id,
         embeddings_cache=embeddings_cache,
         index_type="acs",
-        index_connection=acs_connection["id"],
+        index_connection=acs_connection.id,
         index_config={
             "index_name": acs_temp_index,
             # TODO: Indicates that documents found in supplied embeddings_cache will be considered to be already indexed.
