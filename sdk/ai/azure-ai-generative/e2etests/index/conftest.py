@@ -18,7 +18,7 @@ def index_pytest_addoption(parser):
     # Where to load Index components from.
     parser.addoption("--component-source", default="dev", help="Local dev components are used by default, use 'registry:<registry_name>' to use components from a registry.")
     # Resource Connections needed by Index tests
-    parser.addoption("--aoai-connection-name", default="Default_AzureOpenAI")
+    parser.addoption("--aoai-connection-name", default="aoai_connection")
     parser.addoption("--document-intelligence-connection-name", default="document_intelligence")
     parser.addoption("--acs-connection-name", default="acs_connection")
     parser.addoption("--keep-acs-index", action="store_true", default=False)
@@ -223,7 +223,7 @@ def git_clone_component(component_source, azureml_registry_client, git_clone_com
 
 
 @pytest.fixture(scope="session")
-def git_clone_component_local(ubuntu_index_environment, local_azureml_rag_base):
+def git_clone_component_local(ubuntu_index_environment, local_ai_generative_base):
     from azure.ai.ml import Input, Output, command
     #from azure.ai.ml.entities._job.job_service import JupyterLabJobService
 
@@ -240,7 +240,7 @@ def git_clone_component_local(ubuntu_index_environment, local_azureml_rag_base):
         outputs={
             "output_data": Output(type="uri_folder", mode="upload"),
         },
-        code=local_azureml_rag_base / "src",
+        code=f'{local_ai_generative_base}',
         command=  # "sleep 99999",
         """python -m azure.ai.generative.index._tasks.git_clone\
         --git-repository ${{inputs.git_repository}}\
@@ -269,7 +269,7 @@ def crack_and_chunk_component(component_source, azureml_registry_client, crack_a
 
 
 @pytest.fixture(scope="session")
-def crack_and_chunk_component_local(ubuntu_index_environment, local_azureml_rag_base):
+def crack_and_chunk_component_local(ubuntu_index_environment, local_ai_generative_base):
     from azure.ai.ml import Input, Output, command
     # from azure.ai.ml.entities._job.job_service import JupyterLabJobService
 
@@ -303,7 +303,7 @@ def crack_and_chunk_component_local(ubuntu_index_environment, local_azureml_rag_
         outputs={
             "output_chunks": Output(type="uri_folder"),
         },
-        code=local_azureml_rag_base / "src",
+        code=f'{local_ai_generative_base}',
         command=
         """python -m azure.ai.generative.index._tasks.crack_and_chunk\
         --input_data ${{inputs.input_data}}\
@@ -338,7 +338,7 @@ def crack_and_chunk_and_embed_component(component_source, azureml_registry_clien
 
 
 @pytest.fixture(scope="session")
-def crack_and_chunk_and_embed_component_local(ubuntu_rag_environment, local_azureml_rag_base):
+def crack_and_chunk_and_embed_component_local(ubuntu_rag_environment, local_ai_generative_base):
     from azure.ai.ml import Input, Output, command
 
     component = command(
@@ -379,9 +379,9 @@ def crack_and_chunk_and_embed_component_local(ubuntu_rag_environment, local_azur
         outputs={
             "embeddings": Output(type="uri_folder", mode="rw_mount", description="Where to save data with embeddings. This should be a subfolder of previous embeddings if supplied, typically named using '${name}'. e.g. /my/prev/embeddings/${name}"),
         },
-        code=local_azureml_rag_base / "src",
+        code=f'{local_ai_generative_base}',
         command=
-        """python -m azureml.rag.tasks.crack_and_chunk_and_embed\
+        """python -m azure.ai.generative.index._tasks.crack_and_chunk_and_embed\
         --input_data ${{inputs.input_data}}\
         --input_glob '${{inputs.input_glob}}'\
         --chunk_size ${{inputs.chunk_size}}\
@@ -414,7 +414,7 @@ def generate_embeddings_parallel_component(component_source, azureml_registry_cl
 
 
 @pytest.fixture(scope="session")
-def generate_embeddings_parallel_component_local(ubuntu_index_environment, local_azureml_rag_base):
+def generate_embeddings_parallel_component_local(ubuntu_index_environment, local_ai_generative_base):
     from azure.ai.ml import Input, Output
     from azure.ai.ml.parallel import RunFunction, parallel_run_function
 
@@ -451,8 +451,8 @@ def generate_embeddings_parallel_component_local(ubuntu_index_environment, local
         },
         logging_level="INFO",
         task=RunFunction(
-            code=str(local_azureml_rag_base / "src"),
-            entry_script="azureml/rag/tasks/embed_prs.py",
+            code=f'{local_ai_generative_base}',
+            entry_script="azure/ai/generative/index/_tasks/embed_prs.py",
             program_arguments=
             """--output_data ${{outputs.embeddings}}\
             $[[--embeddings_container ${{inputs.embeddings_container}}]]\
@@ -481,7 +481,7 @@ def generate_embeddings_component(component_source, azureml_registry_client, gen
 
 
 @pytest.fixture(scope="session")
-def generate_embeddings_component_local(ubuntu_index_environment, local_azureml_rag_base):
+def generate_embeddings_component_local(ubuntu_index_environment, local_ai_generative_base):
     from azure.ai.ml import Input, Output, command
 
     component = command(
@@ -507,7 +507,7 @@ def generate_embeddings_component_local(ubuntu_index_environment, local_azureml_
         outputs={
             "embeddings": Output(type="uri_folder", mode="rw_mount", description="Where to save data with embeddings. This should be a subfolder of previous embeddings if supplied, typically named using '${name}'. e.g. /my/prev/embeddings/${name}"),
         },
-        code=local_azureml_rag_base / "src",
+        code=f'{local_ai_generative_base}',
         command=
         """python -m azure.ai.generative.index._tasks.embed\
         --chunks_source ${{inputs.chunks_source}}\
@@ -535,7 +535,7 @@ def create_faiss_index_component(component_source, azureml_registry_client, crea
 
 
 @pytest.fixture(scope="session")
-def create_faiss_index_component_local(ubuntu_index_environment, local_azureml_rag_base):
+def create_faiss_index_component_local(ubuntu_index_environment, local_ai_generative_base):
     from azure.ai.ml import Input, Output, command
 
     component = command(
@@ -551,7 +551,7 @@ def create_faiss_index_component_local(ubuntu_index_environment, local_azureml_r
         outputs={
             "index": Output(type="uri_folder"),
         },
-        code=local_azureml_rag_base / "src",
+        code=f'{local_ai_generative_base}',
         command=
         """python -m azure.ai.generative.index._tasks.build_faiss\
         --embeddings ${{inputs.embeddings}}\
@@ -575,7 +575,7 @@ def update_acs_index_component(component_source, azureml_registry_client, update
 
 
 @pytest.fixture(scope="session")
-def update_acs_index_component_local(ubuntu_rag_environment, local_azureml_rag_base):
+def update_acs_index_component_local(ubuntu_rag_environment, local_ai_generative_base):
     from azure.ai.ml import Input, Output, command
 
     component = command(
@@ -605,9 +605,9 @@ def update_acs_index_component_local(ubuntu_rag_environment, local_azureml_rag_b
         outputs={
             "index": Output(type="uri_folder"),
         },
-        code=local_azureml_rag_base / "src",
+        code=f'{local_ai_generative_base}',
         command=
-        """python -m azureml.rag.tasks.update_acs\
+        """python -m azure.ai.generative.index._tasks.update_acs\
         --embeddings ${{inputs.embeddings}}\
         --acs_config '${{inputs.acs_config}}'\
         $[[--connection_id '${{inputs.connection_id}}']]\
@@ -631,7 +631,7 @@ def register_mlindex_asset_component(component_source, azureml_registry_client, 
 
 
 @pytest.fixture(scope="session")
-def register_mlindex_asset_component_local(ubuntu_index_environment, local_azureml_rag_base):
+def register_mlindex_asset_component_local(ubuntu_index_environment, local_ai_generative_base):
     from azure.ai.ml import Input, Output, command
 
     component = command(
@@ -648,7 +648,7 @@ def register_mlindex_asset_component_local(ubuntu_index_environment, local_azure
         outputs={
             "asset_id": Output(type="uri_file"),
         },
-        code=local_azureml_rag_base / "src",
+        code=f'{local_ai_generative_base}',
         command=
         """python -m azure.ai.generative.index._tasks.register_mlindex\
         --storage-uri ${{inputs.storage_uri}}\
@@ -673,7 +673,7 @@ def qa_data_generation_component(component_source, azureml_registry_client, qa_d
 
 
 @pytest.fixture(scope="session")
-def qa_data_generation_component_local(ubuntu_index_environment, local_azureml_rag_base):
+def qa_data_generation_component_local(ubuntu_index_environment, local_ai_generative_base):
     from azure.ai.ml import Input, Output, command
 
     component = command(
@@ -694,7 +694,7 @@ def qa_data_generation_component_local(ubuntu_index_environment, local_azureml_r
         outputs={
             "output_data": Output(type="uri_folder", mode="rw_mount"),
         },
-        code=f"{local_azureml_rag_base}\\src",  # convert Path() to string to avoid a bug where code directory isn't uploaded
+        code=f"{local_ai_generative_base}",  # convert Path() to string to avoid a bug where code directory isn't uploaded
         command="""python -m azure.ai.generative.index._tasks.generate_qa \
             --input-data ${{inputs.input_data}} \
             --output-data ${{outputs.output_data}} \
