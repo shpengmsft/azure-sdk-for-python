@@ -2,9 +2,9 @@ import io
 import logging
 from contextlib import redirect_stdout
 
-from azure.ai.generative import AIClient
-from azure.ai.generative.operations._index_data_source import ACSSource, GitSource, IndexDataSource, LocalSource
-from azure.ai.generative.operations._acs_output_config import ACSOutputConfig
+# from azure.ai.resources.client import AIClient
+from azure.ai.resources.operations._index_data_source import ACSSource, GitSource, LocalSource
+from azure.ai.resources.operations._acs_output_config import ACSOutputConfig
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ def wait_for_job(ml_client, job, stream_run_output=False):
         logger.info("Job finished streaming.")
 
 
-def test_rust_book_git_to_acs_build_on_cloud(ai_client, ml_client, test_data_dir, aoai_connection, acs_connection, acs_temp_index, experiment_name, stream_run_output):
+def test_rust_book_git_to_acs_build_on_cloud(ai_client, ml_client, aoai_connection, acs_connection, acs_temp_index, embed_deployment_name, stream_run_output):
     git_config = GitSource(git_url="https://github.com/rust-lang/book.git",
                                             git_branch_name="main",
                                             git_connection_id="")
@@ -31,10 +31,10 @@ def test_rust_book_git_to_acs_build_on_cloud(ai_client, ml_client, test_data_dir
         acs_connection_id=acs_connection.id,
     )
 
-    index_job = ai_client.build_ml_index_on_cloud(
+    index_job = ai_client.build_index_on_cloud(
         output_index_name=acs_temp_index,
         vector_store="acs",
-        embeddings_model="text-embedding-ada-002",
+        embeddings_model=embed_deployment_name,
         aoai_connection_id=aoai_connection.id,
         data_source_url="https://github.com/rust-lang/book/blob/main",
         input_source=git_config,
@@ -73,7 +73,7 @@ def test_local_files_to_acs_build_on_cloud(ai_client, ml_client, test_data_dir, 
         acs_connection_id=acs_connection.id,
     )
 
-    index_job = ai_client.build_ml_index_on_cloud(
+    index_job = ai_client.build_index_on_cloud(
         output_index_name=acs_temp_index,
         vector_store="acs",
         embeddings_model="text-embedding-ada-002",
@@ -115,7 +115,7 @@ def test_acs_to_mlindex_build_on_cloud(ai_client, ml_client, test_data_dir, aoai
         acs_connection_id=acs_connection.id,
     )
 
-    index_job = ai_client.build_ml_index_on_cloud(
+    index_job = ai_client.build_index_on_cloud(
         output_index_name=acs_temp_index,
         vector_store="acs",
         embeddings_model="text-embedding-ada-002",
@@ -163,7 +163,7 @@ def test_acs_to_mlindex_build_on_cloud(ai_client, ml_client, test_data_dir, aoai
         acs_connection_id=acs_connection.id,
     )
 
-    index = ai_client.build_ml_index_on_cloud(
+    index = ai_client.build_index_on_cloud(
         output_index_name=acs_temp_index,
         vector_store="acs",
         embeddings_model="text-embedding-ada-002",
@@ -204,7 +204,7 @@ def test_onelake_s3_to_acs_build_on_cloud(ai_client, ml_client, aoai_connection,
         acs_connection_id=acs_connection.id,
     )
 
-    index_job = ai_client.build_ml_index_on_cloud(
+    index_job = ai_client.build_index_on_cloud(
         output_index_name=acs_temp_index,
         vector_store="acs",
         embeddings_model="text-embedding-ada-002",

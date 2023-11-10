@@ -18,17 +18,19 @@ def index_pytest_addoption(parser):
     # Where to load Index components from.
     parser.addoption("--component-source", default="dev", help="Local dev components are used by default, use 'registry:<registry_name>' to use components from a registry.")
     # Resource Connections needed by Index tests
-    parser.addoption("--aoai-connection-name", default="aoai_connection")
+    parser.addoption("--aoai-connection-name", default="conn_shpeng_uksouth_aoai")
     parser.addoption("--document-intelligence-connection-name", default="document_intelligence")
-    parser.addoption("--acs-connection-name", default="acs_connection")
+    parser.addoption("--acs-connection-name", default="conn_shpeng_westcentralus_acs")
     parser.addoption("--keep-acs-index", action="store_true", default=False)
     parser.addoption("--acs-index-name", default=None)
+    parser.addoption("--embed-deployment-name", default="text-embedding-dep",
+                     help="Name of the embedding deployment.")
 
 
 def pytest_generate_tests():
     return ["experiment_name", "stream_run_output",
             "component_source", "aoai_connection_name", "document_intelligence_connection_name",
-            "acs_connection_name", "keep_acs_index", "acs_index_name"]
+            "acs_connection_name", "keep_acs_index", "acs_index_name", "embed_deployment_name"]
 
 
 @pytest.fixture(scope="session")
