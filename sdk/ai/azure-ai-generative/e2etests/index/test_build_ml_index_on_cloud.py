@@ -48,7 +48,7 @@ def test_rust_book_git_to_acs_build_on_cloud(ai_client, ml_client, aoai_connecti
     mlindex_docs_index_asset = ml_client.data.get(acs_temp_index, label="latest")
 
     # Try it out with langchain by loading the MLIndex asset using the azure-ai-generative SDK
-    from azure.ai.generative.index import MLIndex
+    from azure.ai.generative.index._mlindex import MLIndex
 
     mlindex = MLIndex(mlindex_docs_index_asset)
 
@@ -90,7 +90,7 @@ def test_local_files_to_acs_build_on_cloud(ai_client, ml_client, test_data_dir, 
     mlindex_docs_index_asset = ml_client.data.get(acs_temp_index, label="latest")
 
     # Try it out with langchain by loading the MLIndex asset using the azure-ai-generative SDK
-    from azure.ai.generative.index import MLIndex
+    from azure.ai.generative.index._mlindex import MLIndex
 
     mlindex = MLIndex(mlindex_docs_index_asset)
 
@@ -132,7 +132,7 @@ def test_acs_to_mlindex_build_on_cloud(ai_client, ml_client, test_data_dir, aoai
     mlindex_docs_index_asset = ml_client.data.get(acs_temp_index, label="latest")
 
     # Try it out with langchain by loading the MLIndex asset using the azure-ai-generative SDK
-    from azure.ai.generative.index import MLIndex
+    from azure.ai.generative.index._mlindex import MLIndex
 
     mlindex = MLIndex(mlindex_docs_index_asset)
 
@@ -222,7 +222,7 @@ def test_onelake_s3_to_acs_build_on_cloud(ai_client, ml_client, aoai_connection,
     mlindex_docs_index_asset = ml_client.data.get(acs_temp_index, label="latest")
 
     # Try it out with langchain by loading the MLIndex asset using the azure-ai-generative SDK
-    from azure.ai.generative.index import MLIndex
+    from azure.ai.generative.index._mlindex import MLIndex
 
     mlindex = MLIndex(mlindex_docs_index_asset)
 
