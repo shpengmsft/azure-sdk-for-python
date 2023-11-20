@@ -18,9 +18,9 @@ def index_pytest_addoption(parser):
     # Where to load Index components from.
     parser.addoption("--component-source", default="dev", help="Local dev components are used by default, use 'registry:<registry_name>' to use components from a registry.")
     # Resource Connections needed by Index tests
-    parser.addoption("--aoai-connection-name", default="conn_shpeng_uksouth_aoai")
+    parser.addoption("--aoai-connection-name", default="aoai-shpeng-uksouth-conn")
     parser.addoption("--document-intelligence-connection-name", default="document_intelligence")
-    parser.addoption("--acs-connection-name", default="conn_shpeng_westcentralus_acs")
+    parser.addoption("--acs-connection-name", default="conn_shpeng-dev-acs")
     parser.addoption("--keep-acs-index", action="store_true", default=False)
     parser.addoption("--acs-index-name", default=None)
     parser.addoption("--embed-deployment-name", default="text-embedding-dep",

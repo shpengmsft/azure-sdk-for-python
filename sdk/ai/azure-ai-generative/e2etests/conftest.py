@@ -38,11 +38,11 @@ def local_ai_generative_base():
 def pytest_addoption(parser):
     from index.conftest import index_pytest_addoption
 
-    parser.addoption("--subscription-id", default="b17253fa-f327-42d6-9686-f3e553e24763",
+    parser.addoption("--subscription-id", default="f375b912-331c-4fc5-8e9f-2d7205e3e036",
                      help="Subscription id of Azure AI Project used for testing.")
-    parser.addoption("--resource-group", default="hanchi-test",
+    parser.addoption("--resource-group", default="shpeng-dev-eastus-rg",
                      help="Resource group name of Azure AI Project used for testing.")
-    parser.addoption("--project-name", default="hwep",
+    parser.addoption("--project-name", default="shpeng_prj",
                      help="Name of Azure AI Project used for testing.")
     parser.addoption("--workspace-config-path", default="./config.json",
                      help="Path to workspace config file.")
