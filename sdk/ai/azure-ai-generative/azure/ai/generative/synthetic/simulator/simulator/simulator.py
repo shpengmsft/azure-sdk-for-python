@@ -13,6 +13,7 @@ from azure.ai.generative.synthetic.simulator._model_tools.models import (
     AsyncHTTPClientWithRetry,
 )
 from azure.ai.generative.synthetic.simulator import _template_dir as template_dir
+from azure.ai.generative.entities import AzureOpenAIModelConfiguration
 from azure.ai.generative.synthetic.simulator._model_tools import APITokenManager, OpenAIChatCompletionsModel
 
 
@@ -20,7 +21,6 @@ import logging
 import os
 import asyncio
 import threading
-import json
 
 BASIC_MD = os.path.join(template_dir, "basic.md")
 USER_MD = os.path.join(template_dir, "user.md")
@@ -29,15 +29,15 @@ USER_MD = os.path.join(template_dir, "user.md")
 class Simulator:
     def __init__(
         self,
-        systemConnection: "AzureOpenAIModelConfiguration" = None,
-        userConnection: "AzureOpenAIModelConfiguration" = None,
+        systemConnection: AzureOpenAIModelConfiguration = None,
+        userConnection: AzureOpenAIModelConfiguration = None,
         simulate_callback: Callable[[str, List[Dict], dict], str] = None,
     ):
         self.userConnection = self._to_openai_chat_completion_model(userConnection)
         self.systemConnection = self._to_openai_chat_completion_model(systemConnection)
         self.simulate_callback = simulate_callback
 
-    def _to_openai_chat_completion_model(self, config: "AzureOpenAIModelConfiguration"):
+    def _to_openai_chat_completion_model(self, config: AzureOpenAIModelConfiguration):
         token_manager = PlainTokenManager(
             openapi_key=config.api_key,
             auth_header="api-key",
@@ -74,12 +74,8 @@ class Simulator:
     ):
         if role == ConversationRole.ASSISTANT:
             with open(BASIC_MD, "r") as f:
-                chatbot_name_key = "chatbot_name"
                 assistant_template = f.read()
-                assistant_parameters = {chatbot_name_key: "ChatBot"}
-                if parameters.get(chatbot_name_key) is not None:
-                    assistant_parameters[chatbot_name_key] = parameters[chatbot_name_key]
-
+                assistant_parameters = {"chatbot_name": "ChatBot"}
             return self.create_bot(
                 role, assistant_template, assistant_parameters, self.userConnection
             )
@@ -89,7 +85,7 @@ class Simulator:
 
     async def simulate_async(
         self,
-        template: "Template",
+        template: str,
         parameters: dict,
         max_conversation_turns: int,
         api_call_retry_max_count: int = 3,
@@ -97,13 +93,13 @@ class Simulator:
         api_call_delay_sec: float = 0,
     ):
         # create user bot
-        gpt_bot = self.setup_bot(ConversationRole.USER, str(template), parameters)
+        gpt_bot = self.setup_bot(ConversationRole.USER, template, parameters)
 
         if self.userConnection == None:
             bots = [gpt_bot]
         else:
             customer_bot = self.setup_bot(
-                ConversationRole.ASSISTANT, str(template), parameters
+                ConversationRole.ASSISTANT, template, parameters
             )
             bots = [gpt_bot, customer_bot]
         # simulate the conversation
@@ -117,56 +113,39 @@ class Simulator:
         async with asyncHttpClient.client as session:
             conversation_id, conversation_history = await simulate_conversation(
                 bots=bots,
-                simulate_callback=self.simulate_callback,
+                simualte_callback=self.simulate_callback,
                 session=session,
                 turn_limit=max_conversation_turns,
                 api_call_delay_sec=api_call_delay_sec,
-                template_paramaters=parameters,
+                meta_data=parameters["metadata"],
             )
-
-        return self._to_chat_protocol(template, conversation_history, parameters)
-
-    def _get_citations(self, parameters, context_keys):
-        citations = []
-        for c_key in context_keys:
-            if isinstance(parameters[c_key], dict):
-                for k, v in parameters[c_key].items():
-                    citations.append(
-                        {
-                            "id": k,
-                            "content": self._to_citation_content(v)
-                        }
-                    )
-            else:
-                citations.append(
-                    {
-                        "id": c_key,
-                        "content": self._to_citation_content(parameters[c_key])
-                    }
-                )
-
-        return {
-            "citations": citations
+        formatted_conversation = {
+            "conversation_id": conversation_id,
+            "conversation": [
+                turn.to_annotation_format(turn_number=turn_number)
+                for (turn_number, turn) in enumerate(conversation_history)
+            ],
+            "meta_data": parameters,
         }
-                    
-    def _to_citation_content(self, obj):
-        if isinstance(obj, str):
-            return obj
-        else:
-            return json.dumps(obj)
+        return self.to_chat_protocol(formatted_conversation)
 
-    def _to_chat_protocol(self, template, conversation_history, template_parameters):
+    def to_chat_protocol(self, formatted_conversation):
+        c = formatted_conversation
+        conver_list = c["conversation"]
+
+        metadata = c["meta_data"]
+        conv_id = c["conversation_id"]
+
         messages = []
 
-        for i, m in enumerate(conversation_history):
-            citations = self._get_citations(template_parameters, template.context_key)
+        for m in conver_list:
             messages.append(
                 {
-                    "content": m.message,
-                    "role": m.role.value,
-                    "turn_number": i,
-                    "template_parameters": template_parameters,
-                    "context": citations
+                    "content": m["response"],
+                    "role": m["actor"],
+                    "turn_number": m["turn_number"],
+                    "meta_data": metadata,
+                    "conversation_id": conv_id,
                 }
             )
 

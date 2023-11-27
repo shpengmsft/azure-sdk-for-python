@@ -85,9 +85,8 @@ def init_open_ai_from_config(config: dict, credential: Optional[TokenCredential]
                 if hasattr(connection, "type"):
                     if connection.type == "azure_open_ai":
                         config["api_base"] = connection.target
-                        connection_metadata = connection.metadata
-                        config["api_version"] = connection.metadata.get("apiVersion", connection_metadata.get("ApiVersion", "2023-07-01-preview"))
-                        config["api_type"] = connection.metadata.get("apiType", connection_metadata.get("ApiType", "azure")).lower()
+                        config["api_version"] = connection.api_version if hasattr(connection, "api_version") and connection.api_version is not None else "2023-03-15-preview"
+                        config["api_type"] = connection.api_type if hasattr(connection, "api_type") and connection.api_type is not None else "azure"
                 elif isinstance(connection, dict) and connection.get("properties", {}).get("category", None) == "AzureOpenAI":
                     config["api_base"] = connection.get("properties", {}).get("target")
                     connection_metadata = connection.get("properties", {}).get("metadata", {})

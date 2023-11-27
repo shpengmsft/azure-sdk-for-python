@@ -1,6 +1,8 @@
 # ---------------------------------------------------------
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # ---------------------------------------------------------
+from ._metric_handler import MetricHandler
+from ._utils import _has_column
 import abc
 import pandas as pd
 

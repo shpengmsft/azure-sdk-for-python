@@ -41,7 +41,6 @@ class OpenAIEmbedder:
         elif batch_size is None:
             batch_size = 1000
         self.batch_size = int(batch_size)
-        self._dynamic_batch_size = None
 
         if max_retries is None:
             max_retries = 20
@@ -83,7 +82,7 @@ class OpenAIEmbedder:
             "api_type": self.api_type,
             "api_version": self.api_version,
             "api_key": self.api_key,
-            **self.openai_passthrough_args,
+            **self.openai_passthrough_args
         }
         if self.deployment is not None:
             params["engine"] = self.deployment
@@ -97,21 +96,12 @@ class OpenAIEmbedder:
             openai.error.APIError,
             openai.error.APIConnectionError,
             openai.error.RateLimitError,
-            openai.error.ServiceUnavailableError,
+            openai.error.ServiceUnavailableError
         ]
 
     def _dynamic_batch_size_embed_request(self, tokenized_texts: List[List[int]], **kwargs) -> dict:
         try:
-            if self._dynamic_batch_size is None:
-                return self._embed_request(tokenized_texts=tokenized_texts, **kwargs)
-            else:
-                embedding_response = {"data": []}
-                for i in range(0, len(tokenized_texts), self._dynamic_batch_size):
-                    embedding_response["data"].extend(
-                        self._embed_request(
-                            tokenized_texts=tokenized_texts[i : i + self._dynamic_batch_size], **kwargs
-                        )["data"]
-                    )
+            return self._embed_request(tokenized_texts=tokenized_texts, **kwargs)
         except Exception as e:
             err_msg = str(e)
             if "Too many inputs" not in err_msg:
@@ -121,20 +111,14 @@ class OpenAIEmbedder:
             match = re.match(r".*The max number of inputs is ([0-9]+).*", err_msg)
             if match and match.group(1):
                 try:
-                    self._dynamic_batch_size = int(match.group(1))
+                    self.batch_size = int(match.group(1))
                 except Exception:
-                    logger.error(
-                        "Failed to parse max number of inputs from error message, falling back to batch_size=1."
-                    )
-                    self._dynamic_batch_size = 1
-                logger.warning(f"Reducing batch_size to {self._dynamic_batch_size} and retrying.")
+                    logger.error("Failed to parse max number of inputs from error message, falling back to batch_size=1.")
+                    self.batch_size = 1
+                logger.warning(f"Reducing batch_size to {self.batch_size} and retrying.")
                 embedding_response = {"data": []}
-                for i in range(0, len(tokenized_texts), self._dynamic_batch_size):
-                    embedding_response["data"].extend(
-                        self._embed_request(
-                            tokenized_texts=tokenized_texts[i : i + self._dynamic_batch_size], **kwargs
-                        )["data"]
-                    )
+                for i in range(0, len(tokenized_texts), self.batch_size):
+                    embedding_response["data"].extend(self._embed_request(tokenized_texts=tokenized_texts[i : i + self.batch_size], **kwargs)["data"])
             else:
                 raise
 
@@ -160,17 +144,10 @@ class OpenAIEmbedder:
                     retrying = False
                     for retryable_error in self._retryable_openai_errors:
                         if isinstance(e, retryable_error):
-                            retrying = True
-                            import openai
-
-                            # Retry with retry-after set by openai for RateLimitError
-                            if isinstance(e, openai.error.RateLimitError) and "Retry-After" in e.headers:
-                                delay = int(e.headers["Retry-After"])
-                                logger.warning(f"OpenAI throws RateLimitError with Retry-After set to {delay}")
                             # Retry with exponential backoff
-                            else:
-                                exp = 2 ** (retry - 1)
-                                delay = max(min(1 * exp, max_seconds), min_seconds)
+                            retrying = True
+                            exp = 2 ** (retry - 1)
+                            delay = max(min(1 * exp, max_seconds), min_seconds)
                             total_delay += delay
                             logger.warning(f"Sleeping for {delay} seconds before retrying.")
                             time.sleep(delay)
@@ -209,7 +186,8 @@ class OpenAIEmbedder:
 
             tokens = encoding.encode(
                 text,
-                # TODO: Does this need to be configurable? Our use cases treat all text as raw data.
+                # TODO: Do these need to be configurable? Our use cases treat all text as raw data.
+                allowed_special="all",
                 disallowed_special=(),
             )
             # Text longer than a models context length can be split and the embeddings averaged to approximate full text

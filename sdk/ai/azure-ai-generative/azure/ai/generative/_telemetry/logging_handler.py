@@ -26,8 +26,7 @@ from azureml.telemetry import INSTRUMENTATION_KEY
 from azure.ai.ml._telemetry.logging_handler import in_jupyter_notebook, CustomDimensionsFilter
 
 from azure.ai.generative._user_agent import USER_AGENT
-
-GEN_AI_INTERNAL_LOGGER_NAMESPACE = "azure.ai.generative._telemetry"
+from azure.ai.generative.constants._common import GEN_AI_INTERNAL_LOGGER_NAMESPACE
 
 test_subscriptions = [
     "b17253fa-f327-42d6-9686-f3e553e24763",

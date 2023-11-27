@@ -6,28 +6,21 @@
 
 try:
     import asyncio
+    import logging
     import os
-    import json
     import time
     from enum import Enum
     from functools import lru_cache
-    from typing import Dict, List, Tuple, Any, Union
+    from typing import Dict, List, Tuple
     import openai
-    from collections import defaultdict
-    from azure.ai.resources.entities import BaseConnection
-    from azure.identity import DefaultAzureCredential
-    from azure.ai.generative._telemetry import ActivityType, monitor_with_activity, OpsLogger
-    from azure.core.tracing.decorator import distributed_trace
 except ImportError as e:
     print("In order to use qa, please install the 'qa_generation' extra of azure-ai-generative")
     raise e
 
 
 _TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
-ops_logger = OpsLogger(__name__)
-logger, module_logger = ops_logger.package_logger, ops_logger.module_logger
+logger = logging.getLogger(__name__)
 
-_DEFAULT_AOAI_VERSION = "2023-07-01-preview"
 _MAX_RETRIES = 7
 _RETRY_ERRORS = (
     openai.error.ServiceUnavailableError,
@@ -85,29 +78,25 @@ class QAType(str, Enum):
     """Conversation QAs have questions that might reference words or ideas from previous QAs. ex. If previous conversation was about
     some topicX from text, next question might reference it without using its name: How does *it* compare to topicY?"""
 
+
 class QADataGenerator:
     """Class for generating Question-Answer data from text."""
     _PARSING_ERR_UNEQUAL_QA = "Parsing error: Unequal question answer count"
     _PARSING_ERR_UNEQUAL_Q_AFTER_MOD = "Parsing error: Unequal question count after modification"
     _PARSING_ERR_FIRST_LINE = "Parsing error: First line must be a question"
 
-    def __init__(self, model_config: Dict, **kwargs: Any):
-        """Initialize QADataGenerator using Azure OpenAI details."""        
+    def __init__(self, model_config: Dict):
+        """Initialize QADataGenerator using Azure OpenAI details."""
         self._chat_completion_params = dict(
-            # AOAI connection params
-            api_type=model_config["api_type"] if "api_type" in model_config else os.getenv("OPENAI_API_TYPE", "azure"),
-            api_version=model_config["api_version"] if "api_version" in model_config else os.getenv("OPENAI_API_VERSION", _DEFAULT_AOAI_VERSION),
-            api_base=model_config["api_base"] if "api_base" in model_config else os.getenv("OPENAI_API_BASE"),
-            api_key=model_config["api_key"] if "api_key" in model_config else os.getenv("OPENAI_API_KEY"),
-
-            # AOAI model params
+            api_type=model_config.get("api_type", "azure"),
+            api_version=model_config.get("api_version", "2023-03-15-preview"),
+            api_base=model_config["api_base"],
+            api_key=model_config["api_key"],
             deployment_id=model_config["deployment"],
             model=model_config["model"],
             max_tokens=model_config.get("max_tokens", 2000),
             temperature=0.0,  # don't need creativity
         )
-
-        ops_logger.update_info(kwargs)
 
     def _validate(self, qa_type: QAType, num_questions: int):
         if qa_type == QAType.SUMMARY and num_questions is not None:
@@ -191,45 +180,6 @@ class QADataGenerator:
         assert len(modified_questions) == len(questions), self._PARSING_ERR_UNEQUAL_Q_AFTER_MOD
         return modified_questions, response["usage"]
 
-    @distributed_trace
-    @monitor_with_activity(logger, "QADataGenerator.Export", ActivityType.INTERNALCALL)
-    def export_to_file(self, output_path: str, qa_type: QAType, results: Union[List, List[List]]):
-        """
-            Writes results from QA gen to a jsonl file for Promptflow batch run
-            results is either a list of questions and answers or list of list of questions and answers grouped by their chunk
-                e.g. [("How are you?", "I am good.")]    or [ [("How are you?", "I am good.")], [("What can I do?", "Tell me a joke.")]
-        """
-        data_dict = defaultdict(list)
-        
-        if not isinstance(results[0], List):
-            results = [results]
-        
-        for qs_and_as in results:
-            chat_history = []
-            for question, answer in qs_and_as: 
-                if qa_type == QAType.CONVERSATION:
-                    # Chat History columns:
-                    data_dict["chat_history"].append(json.dumps(chat_history))
-                    data_dict["chat_input"].append(question)
-                    chat_history.append({"inputs": {"chat_input": question}, "outputs": {"chat_output": answer}})
-                else:
-                    # QnA columns:
-                    data_dict["question"].append(question)   
-
-                data_dict["ground_truth"].append(answer)  # Consider generated answer as the ground truth
-
-        # export to jsonl file
-        try:
-            import pandas as pd
-        except ImportError as e:
-            print("In order to write qa data to file, please install pandas")
-            raise e
-
-        data_df = pd.DataFrame(data_dict, columns=list(data_dict.keys()))
-        data_df.to_json(output_path, lines=True, orient="records")
-
-    @distributed_trace
-    @monitor_with_activity(logger, "QADataGenerator.Generate", ActivityType.INTERNALCALL)
     def generate(self, text: str, qa_type: QAType, num_questions: int = None) -> Dict:
         self._validate(qa_type, num_questions)
         response = _completion_with_retries(
@@ -256,8 +206,6 @@ class QADataGenerator:
         assert len(modified_questions) == len(questions), self._PARSING_ERR_UNEQUAL_Q_AFTER_MOD
         return modified_questions, response["usage"]
 
-    @distributed_trace
-    @monitor_with_activity(logger, "QADataGenerator.GenerateAsync", ActivityType.INTERNALCALL)
     async def generate_async(self, text: str, qa_type: QAType, num_questions: int = None) -> Dict:
         self._validate(qa_type, num_questions)
         response = await _completion_with_retries_async(
@@ -269,7 +217,7 @@ class QADataGenerator:
         token_usage = response["usage"]
         if qa_type == QAType.CONVERSATION:
             questions, token_usage2 = await self._modify_conversation_questions_async(questions)
-            token_usage = self._merge_token_usage(token_usage, token_usage2) 
+            token_usage = self._merge_token_usage(token_usage, token_usage2)
         return {
             "question_answers": list(zip(questions, answers)),
             "token_usage": token_usage,
