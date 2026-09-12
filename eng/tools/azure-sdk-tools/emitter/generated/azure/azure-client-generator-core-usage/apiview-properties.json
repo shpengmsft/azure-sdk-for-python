@@ -19,5 +19,5 @@
         "specs.azure.clientgenerator.core.usage.operations.NamespaceUsageOperations.namespace_model_serializable": "_Specs_.Azure.ClientGenerator.Core.Usage.NamespaceUsage.namespaceModelSerializable",
         "specs.azure.clientgenerator.core.usage.aio.operations.NamespaceUsageOperations.namespace_model_serializable": "_Specs_.Azure.ClientGenerator.Core.Usage.NamespaceUsage.namespaceModelSerializable"
     },
-    "CrossLanguageVersion": "1443e84b75d8"
+    "CrossLanguageVersion": "deb9705a733c"
 }
